@@ -1,0 +1,59 @@
+The following guide builds upon the bot you created using the [Getting Started guide](./get-started). If you have not successfully built and tested your bot locally, we recommend you do that first.
+
+## Structuring your project
+
+We recommend structuring your project to encapsulate your bot's logic and behavior independently from the hosting container, e.g. Express and Lambda. A project might therefore have this structure:
+
+### bot.js
+
+```
+import { Service } from 'ringcentral-chatbot/dist/models'
+export const handle = async event => {
+    console.log(event.type, 'event')
+    switch (event.type) {
+    case 'Message4Bot':
+        // bot logic
+        break
+    default:
+        break
+    }
+}
+```
+
+### app.js
+
+```
+import createApp from 'ringcentral-chatbot/dist/apps'
+import { Service, Bot } from 'ringcentral-chatbot/dist/models'
+import { handle } from './bot'
+const app = createApp(handle)
+// app logic, for example...
+// app.get('/webhook-handler', async (req, res) => { })
+export default app
+```
+
+### express.js
+
+```
+import axios from 'axios'
+import app from './bot'
+let PORT = process.env.RINGCENTRAL_CHATBOT_SERVER
+if (process.env.PORT) {
+    PORT = process.env.PORT
+}
+app.listen( PORT, () => {
+  console.log(`Server is running on port ${PORT}`)
+})
+```
+
+### lambda.js
+
+```
+const serverlessHTTP = require('serverless-http')
+const { createAsyncProxy } = require('ringcentral-chatbot/dist/lambda')
+const createApp = require('ringcentral-chatbot/dist/apps').default
+const app = require('./app').default
+module.exports.app = serverlessHTTP(app)
+module.exports.proxy = createAsyncProxy('app')
+```
+

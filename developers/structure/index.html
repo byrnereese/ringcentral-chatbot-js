@@ -12,9 +12,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     
-    <link rel="canonical" href="https://ringcentral.github.io/ringcentral-chatbot-js/developers/apps/">
+    <link rel="canonical" href="https://ringcentral.github.io/ringcentral-chatbot-js/developers/structure/">
     <link rel="shortcut icon" href="../../img/favicon.ico">
-    <title>Creating Your Bot App - RingCentral Chatbot Framework for Javascript</title>
+    <title>Project Structure - RingCentral Chatbot Framework for Javascript</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://cdn.rawgit.com/afeld/bootstrap-toc/v1.0.1/dist/bootstrap-toc.min.css" rel="stylesheet">
@@ -205,7 +205,7 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="https://github.com/byrnereese/ringcentral-chatbot-js/edit/master/docs/developers/apps.md"><i class="fa fa-github"></i> Edit on GitHub</a>
+          <a class="nav-link" href="https://github.com/byrnereese/ringcentral-chatbot-js/edit/master/docs/developers/structure.md"><i class="fa fa-github"></i> Edit on GitHub</a>
         </li>
       </ul>
     </div>
@@ -227,8 +227,8 @@
       <li >
         <a class="nav-link" href="../bots/">Building Bots</a>
       </li>
-      <li >
-        <a class="nav-link" href="../structure/">Project Structure</a>
+      <li class="active">
+        <a class="nav-link" href="./">Project Structure</a>
       </li>
       <li >
         <a class="nav-link" href="../lambda/">Deploying to AWS Lambda</a>
@@ -253,26 +253,58 @@
 
 
 
-<h1 id="creating-your-bot-app">Creating Your Bot App</h1>
-<p>Every bot you create must be registered with RingCentral. That can be done manually (see instructions below), or can be created quickly using the button below.</p>
-<p><a href="https://developer.ringcentral.com/new-app?name=My+Bot+App&desc=A+sample+app+created+for+the+javascript+chatbot+framework&public=true&type=ServerBot&permissions=ReadAccounts,EditExtensions,SubscriptionWebhook,Glip&redirectUri=https://%3Cchatbot-server%3E/bot/oauth" class="btn btn-primary">Create Bot App</a></p>
-<h2 id="manual-installation-instructions">Manual Installation Instructions</h2>
-<ol>
-<li><a href="https://developer.ringcentral.com/login.html#/">Login or create an account</a> if you have not done so already.</li>
-<li>Go to Console/Apps and click 'Create App' button.</li>
-<li>Give your app a name and description, then click Next.</li>
-<li>On the second page of the create app wizard enter the following:<ul>
-<li>Select 'Private' for Application Type.</li>
-<li>Select 'Server-only (No UI)' for Platform Type.</li>
+<h1 id="structuring-your-bot-project">Structuring Your Bot Project</h1>
+<p>We recommend structuring your project to encapsulate your bot's logic and behavior independently from the hosting container, e.g. Express and Lambda. A project might therefore have this structure:</p>
+<ul>
+<li><code>bot.js</code> - This file contains just your bot logic, the messages it sends, the events it listens for, etc. </li>
+<li><code>app.js</code> - This file the logic for handling web requests, such as processing webhooks from third parties, and any other web content that could be served. </li>
+<li><code>express.js</code> - This file wraps <code>app.js</code> to host in an Express container for hosting on your laptop or your own infrastructure. </li>
+<li><code>lambda.js</code> - This file wraps <code>app.js</code> to host on AWS Lambda. </li>
 </ul>
-</li>
-<li>On the third page of the create app wizard, select the following permissions:<ul>
-<li>Glip</li>
-<li>Read Accounts</li>
-<li>Webhook Subscriptions</li>
-</ul>
-</li>
-</ol>
+<h2 id="botjs">bot.js</h2>
+<div class="codehilite"><pre><span></span><span class="kr">import</span> <span class="p">{</span> <span class="nx">Service</span> <span class="p">}</span> <span class="nx">from</span> <span class="s1">&#39;ringcentral-chatbot/dist/models&#39;</span>
+<span class="kr">export</span> <span class="kr">const</span> <span class="nx">handle</span> <span class="o">=</span> <span class="nx">async</span> <span class="nx">event</span> <span class="p">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">type</span><span class="p">,</span> <span class="s1">&#39;event&#39;</span><span class="p">)</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">type</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="s1">&#39;Message4Bot&#39;</span><span class="o">:</span>
+        <span class="c1">// bot logic</span>
+        <span class="k">break</span>
+    <span class="k">default</span><span class="o">:</span>
+        <span class="k">break</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3 id="appjs">app.js</h3>
+<div class="codehilite"><pre><span></span><span class="kr">import</span> <span class="nx">createApp</span> <span class="nx">from</span> <span class="s1">&#39;ringcentral-chatbot/dist/apps&#39;</span>
+<span class="kr">import</span> <span class="p">{</span> <span class="nx">Service</span><span class="p">,</span> <span class="nx">Bot</span> <span class="p">}</span> <span class="nx">from</span> <span class="s1">&#39;ringcentral-chatbot/dist/models&#39;</span>
+<span class="kr">import</span> <span class="p">{</span> <span class="nx">handle</span> <span class="p">}</span> <span class="nx">from</span> <span class="s1">&#39;./bot&#39;</span>
+<span class="kr">const</span> <span class="nx">app</span> <span class="o">=</span> <span class="nx">createApp</span><span class="p">(</span><span class="nx">handle</span><span class="p">)</span>
+<span class="c1">// app logic, for example...</span>
+<span class="c1">// app.get(&#39;/webhook-handler&#39;, async (req, res) =&gt; { })</span>
+<span class="kr">export</span> <span class="k">default</span> <span class="nx">app</span>
+</pre></div>
+
+<h3 id="expressjs">express.js</h3>
+<div class="codehilite"><pre><span></span><span class="kr">import</span> <span class="nx">axios</span> <span class="nx">from</span> <span class="s1">&#39;axios&#39;</span>
+<span class="kr">import</span> <span class="nx">app</span> <span class="nx">from</span> <span class="s1">&#39;./bot&#39;</span>
+<span class="kd">let</span> <span class="nx">PORT</span> <span class="o">=</span> <span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">RINGCENTRAL_CHATBOT_SERVER</span>
+<span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">PORT</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">PORT</span> <span class="o">=</span> <span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">PORT</span>
+<span class="p">}</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span> <span class="nx">PORT</span><span class="p">,</span> <span class="p">()</span> <span class="p">=&gt;</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`Server is running on port </span><span class="si">${</span><span class="nx">PORT</span><span class="si">}</span><span class="sb">`</span><span class="p">)</span>
+<span class="p">})</span>
+</pre></div>
+
+<h3 id="lambdajs">lambda.js</h3>
+<div class="codehilite"><pre><span></span><span class="kr">const</span> <span class="nx">serverlessHTTP</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;serverless-http&#39;</span><span class="p">)</span>
+<span class="kr">const</span> <span class="p">{</span> <span class="nx">createAsyncProxy</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;ringcentral-chatbot/dist/lambda&#39;</span><span class="p">)</span>
+<span class="kr">const</span> <span class="nx">createApp</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;ringcentral-chatbot/dist/apps&#39;</span><span class="p">).</span><span class="k">default</span>
+<span class="kr">const</span> <span class="nx">app</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./app&#39;</span><span class="p">).</span><span class="k">default</span>
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">.</span><span class="nx">app</span> <span class="o">=</span> <span class="nx">serverlessHTTP</span><span class="p">(</span><span class="nx">app</span><span class="p">)</span>
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">.</span><span class="nx">proxy</span> <span class="o">=</span> <span class="nx">createAsyncProxy</span><span class="p">(</span><span class="s1">&#39;app&#39;</span><span class="p">)</span>
+</pre></div>
 
 <ul class="metadata page-metadata" data-bi-name="page info" lang="en-us" dir="ltr">
   <li class="last-updated-holder displayDate loading">

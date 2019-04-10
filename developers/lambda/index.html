@@ -14,7 +14,7 @@
     
     <link rel="canonical" href="https://ringcentral.github.io/ringcentral-chatbot-js/developers/lambda/">
     <link rel="shortcut icon" href="../../img/favicon.ico">
-    <title>Deploying to Lambda - RingCentral Chatbot Framework for Javascript</title>
+    <title>Deploying to AWS Lambda - RingCentral Chatbot Framework for Javascript</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://cdn.rawgit.com/afeld/bootstrap-toc/v1.0.1/dist/bootstrap-toc.min.css" rel="stylesheet">
@@ -227,8 +227,11 @@
       <li >
         <a class="nav-link" href="../bots/">Building Bots</a>
       </li>
+      <li >
+        <a class="nav-link" href="../structure/">Project Structure</a>
+      </li>
       <li class="active">
-        <a class="nav-link" href="./">Deploying to Lambda</a>
+        <a class="nav-link" href="./">Deploying to AWS Lambda</a>
       </li>
       <li >
         <a class="nav-link" href="../skills/">Developing "Skills"</a>
@@ -249,30 +252,37 @@
       <div id="main" class="col-md-7" role="main">
 
 
-<nav aria-label="breadcrumb">
-  <ol class="breadcrumb">
-    
-    <li class="breadcrumb-item active" aria-current="page">Deploying to Lambda</li>
-  </ol>
-</nav>
-
 
 <h1 id="deploying-a-bot-to-aws-lambda">Deploying a Bot to AWS Lambda</h1>
-<p>The following guide builds upon the bot you created using the <a href="./get-started">Getting Started guide</a>. If you have not successfully built and tested your bot locally, we recommend you do that first.</p>
+<p>This guide will take you through the process of deploying and hosting your bot on AWS Lambda. We recommend you do the following prior to reading this guide:</p>
+<ol>
+<li>Successful test your bot locally using the instructions in our <a href="../get-started">Getting Started Guide</a>.</li>
+<li>Familiarize yourself with our <a href="../structure">recommended project structure</a>.</li>
+</ol>
+<p>When you are ready, Let's begin.</p>
 <h2 id="install-dependencies">Install dependencies</h2>
-<div class="codehilite"><pre><span></span>yarn add ringcentral-chatbot pg serverless-http
+<p>To get started let's add some key dependencies to our project. </p>
+<div class="codehilite"><pre><span></span>yarn add ringcentral-chatbot serverless-http pg
 yarn add --dev serverless
 </pre></div>
 
-<p>We installed pg because we would like to use PostgreSQL as database. In order to deploy to AWS Lambda, you can choose either PostgreSQL or MySQL as database. Install mysql of you use MySQL as database. For local development, you can choose SQLite(refer to Quick start with Express.js).</p>
-<p>We use serverless-http to use Express.js code in AWS Lambda. So that we can reuse code between Express.js and AWS Lambda.</p>
-<p>We use serverless framework to help us deploy the project to AWS with ease.</p>
+<ul>
+<li>
+<p>We installed <code>pg</code> because we choose to use PostgreSQL as our database in this example, but you are welcome to use any database you wish. </p>
+</li>
+<li>
+<p>We use <code>serverless-http</code> to use Express.js code in AWS Lambda so that we can reuse code between Express.js and AWS Lambda.</p>
+</li>
+<li>
+<p>We use <code>serverless</code> framework to help us deploy the project to AWS with ease.</p>
+</li>
+</ul>
 <h2 id="code-the-bot">Code the Bot</h2>
-<p>Create lambda.js file with the following content:</p>
+<p>Nothing requires you to structure your project according to <a href="../structure">our recommendation</a>. In the example below we encapsulate our entire bot in a single file <code>lambda.js</code> to more easily illustrate AWS deployment. </p>
+<p>Create and edit a file called <code>lambda.js</code> with the following content:</p>
 <div class="codehilite"><pre><span></span><span class="kr">const</span> <span class="nx">createApp</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;ringcentral-chatbot/dist/apps&#39;</span><span class="p">).</span><span class="k">default</span>
 <span class="kr">const</span> <span class="p">{</span> <span class="nx">createAsyncProxy</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;ringcentral-chatbot/dist/lambda&#39;</span><span class="p">)</span>
 <span class="kr">const</span> <span class="nx">serverlessHTTP</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;serverless-http&#39;</span><span class="p">)</span>
-
 <span class="kr">const</span> <span class="nx">handle</span> <span class="o">=</span> <span class="nx">async</span> <span class="nx">event</span> <span class="p">=&gt;</span> <span class="p">{</span>
   <span class="kr">const</span> <span class="p">{</span> <span class="nx">type</span><span class="p">,</span> <span class="nx">text</span><span class="p">,</span> <span class="nx">group</span><span class="p">,</span> <span class="nx">bot</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">event</span>
   <span class="k">if</span> <span class="p">(</span><span class="nx">type</span> <span class="o">===</span> <span class="s1">&#39;Message4Bot&#39;</span> <span class="o">&amp;&amp;</span> <span class="nx">text</span> <span class="o">===</span> <span class="s1">&#39;ping&#39;</span><span class="p">)</span> <span class="p">{</span>
@@ -284,17 +294,21 @@ yarn add --dev serverless
 <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">.</span><span class="nx">proxy</span> <span class="o">=</span> <span class="nx">createAsyncProxy</span><span class="p">(</span><span class="s1">&#39;app&#39;</span><span class="p">)</span>
 </pre></div>
 
-<p>You may notice that the code is similar to its Express.js version, especially the handle method is identical. This is because we would like to allow for greater code reuse, regardless of whether you are deploying your chatbot as an Express.js server or to AWS Lambda.</p>
 <h2 id="create-and-setup-your-database">Create and Setup Your Database</h2>
 <p>If you have access to a MySQL or PostgreSQL database you are free to use that. If you do not, you can use AWS's RDS service to create one through the following steps:</p>
 <ol>
-<li>Login AWS Console and navigate to RDS. </li>
+<li>Login to the AWS Console and navigate to RDS. </li>
 <li>Create a PostgreSQL database.</li>
 <li>Configure the security group so that it is publicly accessible with username and password.</li>
 </ol>
 <p>Take a note of the database uri, database name, username and password, we will use them soon.</p>
+<div class="admonition warning">
+<p class="admonition-title">Database Security Group Rules</p>
+<p>Be sure to configure your Security Group Rules so that your database is accessible from the outside. Your rules should look like this:</p>
+<p><img src="../security-group.png" class="img-fluid"></p>
+</div>
 <h2 id="create-envyml">Create .env.yml</h2>
-<p>Create <code>.env.yml</code> with the following properties (use <a href="https://github.com/tylerlong/ringcentral-chatbot-js/blob/master/.lambda.env.yml">this template</a> to help):</p>
+<p>Create a file called <code>.env.yml</code> with the following properties (use <a href="https://github.com/tylerlong/ringcentral-chatbot-js/blob/master/.lambda.env.yml">this template</a> to help):</p>
 <table class="table">
 <thead>
 <tr>
@@ -334,7 +348,7 @@ yarn add --dev serverless
 </tbody>
 </table>
 <h2 id="create-serverlessyml">Create serverless.yml</h2>
-<p>Create serverless.yml with following content:</p>
+<p>Create <code>serverless.yml</code> with following content:</p>
 <div class="codehilite"><pre><span></span><span class="nt">service</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">demo-ping-chatbot</span>
 <span class="nt">provider</span><span class="p">:</span>
@@ -366,26 +380,27 @@ yarn add --dev serverless
 </pre></div>
 
 <h2 id="get-a-lambda-url">Get a Lambda URL</h2>
-<p>To obtain the public URL of your new chat bot, you must deploy to AWS:</p>
+<p>To obtain the public URL of your new chat bot, you must deploy to AWS. This URL is essential as it will be used to tell RingCentral where to post webhooks and notifications when users install and interact with your bot. </p>
 <div class="codehilite"><pre><span></span>npx sls deploy
 </pre></div>
 
 <h2 id="update-envyml">Update .env.yml</h2>
-<p>Once the project is successfully deployed, a Lambda URL will be provisioned to us. Now we need to edit the <code>.env.yml</code> file with this new URL. Change <code>RINGCENTRAL_CHATBOT_SERVER</code> accordingly. It should be in the form of:</p>
+<p>Once the project is successfully deployed, a Lambda URL will be provisioned to you. Now, edit the <code>.env.yml</code> file and set <code>RINGCENTRAL_CHATBOT_SERVER</code> to this URL. It should be in the form of:</p>
 <blockquote>
-<p>https://xxxxxx.execute-api.us-east-1.amazonaws.com/prod</p>
+<p>https://xxxxxx.execute-api.yyyy.amazonaws.com/prod</p>
 </blockquote>
 <h2 id="redeploy-to-aws">Redeploy to AWS</h2>
-<p>We must deploy the bot after we edit <code>env.yml</code>:</p>
+<p>We must redeploy the bot after we edit <code>env.yml</code>:</p>
 <div class="codehilite"><pre><span></span>npx sls deploy
 </pre></div>
 
 <h2 id="set-the-oauth-redirect-uri">Set the "OAuth Redirect URI"</h2>
 <p>Login to https://developer.ringcentral.com, navigate to your bot app, and open the "Settings" tab. Then set "OAuth Redirect URI" to your bot's OAuth endpoint. The URL is your Lambda URL plus "/prod/bot/oauth". For example:</p>
 <blockquote>
-<p>https://xxxxxx.execute-api.us-east-1.amazonaws.com/prod/bot/oauth</p>
+<p>https://xxxxxx.execute-api.yyyyy.amazonaws.com/prod/bot/oauth</p>
 </blockquote>
-<h2 id="create-database-tables">Create database tables</h2>
+<h2 id="initialize-the-database">Initialize the Database</h2>
+<p>With your bot setup and deployed, we need to initialize the database by creating the database tables needed to manage the bot's state, and persist the many auth tokens, and subscriptions needed to keep your bot up and running. </p>
 <div class="codehilite"><pre><span></span>curl -X PUT -u admin:password https://&lt;chatbot-server&gt;/prod/admin/setup-database
 </pre></div>
 
@@ -393,6 +408,7 @@ yarn add --dev serverless
 <h2 id="install-and-test-the-bot">Install and Test the Bot</h2>
 <p>Once all of the above is complete, open your Bot in the RingCentral Developer Console. Click "Bot" in the left-hand menu. Set your bot name, then click the button "Add to Glip." Then login to the Glip Sandbox to test. </p>
 <h2 id="troubleshooting">Troubleshooting</h2>
+<p>Our community has shared some of these troubleshooting experiences, feel free to add your own.</p>
 <ul>
 <li>AWS Lambda connects AWS RDS issue<ul>
 <li>If you create an RDS manually and let it create a new security group for you.<ul>
@@ -404,8 +420,8 @@ yarn add --dev serverless
 </ul>
 </li>
 <li>AWS Lambda and <code>await</code> issue<ul>
-<li>AWS Lambda is stateless and it won't keep a background runner</li>
-<li>So if your code is async, DO remember to <code>await</code>. Otherwise that code will not be executed before Lambda invocation terminates</li>
+<li>AWS Lambda is stateless and it won't keep a background task running</li>
+<li>So if your code is async, DO remember to use <code>await</code>. Otherwise that code will not be executed before Lambda invocation terminates</li>
 <li>I forgot to <code>await</code>, a weird phenomenon was: whenever I issued a command, I always got reply of previous command</li>
 </ul>
 </li>
